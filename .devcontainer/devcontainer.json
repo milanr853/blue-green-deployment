@@ -1,0 +1,24 @@
+// .devcontainer/devcontainer.json
+{
+    "name": "MyApp DevContainer",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "web", // <-- replace with your service name
+    "workspaceFolder": "/app",
+    // Optional: forward ports
+    "forwardPorts": [
+        5173,
+        3000
+    ],
+    // New way to define VS Code settings + extensions
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/bash"
+            },
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    }
+}
