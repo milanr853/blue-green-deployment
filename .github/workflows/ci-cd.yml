@@ -1,0 +1,48 @@
+name: CI/CD Blue-Green
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  IMAGE_NAME: myapp
+  REGISTRY: localhost:5000   # when runner is on desktop; change if needed
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build and push Docker image
+        run: |
+          TAG=${{ github.sha }}
+          docker build --build-arg VITE_APP_VERSION=$TAG -t $REGISTRY/$IMAGE_NAME:$TAG -f Dockerfile .
+          docker push $REGISTRY/$IMAGE_NAME:$TAG
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+
+      - name: Deploy (blue/green)
+        run: |
+          TAG=${{ github.sha }}
+          chmod +x ./k8s/deploy-bluegreen.sh
+          ./k8s/deploy-bluegreen.sh ${REGISTRY} ${TAG}
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+
