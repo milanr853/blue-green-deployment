@@ -10,10 +10,10 @@ TAG=${1:-$(git rev-parse --short HEAD)}
 NS=bluegreen
 IMAGE="${DOCKER_IMAGE_REPO}:${TAG}"
 
-kubectl apply -f k8s/namespace.yaml || true
+kubectl apply -f k8s/namespace.yml || true
 
 # Apply deployments and service, replacing PLACEHOLDER with actual image
-for f in k8s/deployment-blue.yaml k8s/deployment-green.yaml k8s/service.yaml; do
+for f in k8s/deployment-blue.yml k8s/deployment-green.yml k8s/service.yml; do
   sed "s|IMAGE_PLACEHOLDER|${IMAGE}|g" "$f" | kubectl apply -n ${NS} -f -
 done
 
