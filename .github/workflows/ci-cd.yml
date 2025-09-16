@@ -66,6 +66,4 @@ jobs:
         env:
           DOCKER_IMAGE_REPO: docker.io/milanr853/blue-green-deployment
         run: |
-          IMAGE_PREFIX=${DOCKER_IMAGE_REPO}
-          TAG=${{ needs.build.outputs.image-tag }}
-          ./k8s/deploy-bluegreen.sh "${IMAGE_PREFIX}" "${TAG}"
+          ./k8s/deploy-bluegreen.sh "${{ needs.build.outputs.image-tag }}"
