@@ -7,7 +7,7 @@ if [ -f .env ]; then
 fi
 
 TAG=${1:-$(git rev-parse --short HEAD)}
-NS=${K8S_NAMESPACE}
+NS=bluegreen
 IMAGE="${DOCKER_IMAGE_REPO}:${TAG}"
 
 kubectl apply -f k8s/namespace.yaml || true
