@@ -1,29 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage:
-# ./deploy-bluegreen.sh <registry-host:port> <image-tag>
-# Example: ./deploy-bluegreen.sh localhost:5000 abc123
+# Load env file
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
 
-REGISTRY=${1:-localhost:5000}
-TAG=${2:-latest}
-NS=bluegreen
-IMAGE=${REGISTRY}/myapp:${TAG}
+TAG=${1:-$(git rev-parse --short HEAD)}
+NS=${K8S_NAMESPACE}
+IMAGE="${DOCKER_IMAGE_REPO}:${TAG}"
 
-# ensure ns exists
-kubectl apply -f namespace.yaml -n ${NS} || true
+kubectl apply -f k8s/namespace.yaml || true
 
-echo "Ensuring namespace exists..."
-kubectl apply -f namespace.yaml
-
-# create deployments and service if not present (with placeholder image)
-echo "Applying k8s manifests (if first run, placeholders will be replaced)..."
-# Replace IMAGE_PLACEHOLDER in files and apply
-for f in deployment-blue.yaml deployment-green.yaml service.yaml; do
+# Apply deployments and service, replacing PLACEHOLDER with actual image
+for f in k8s/deployment-blue.yaml k8s/deployment-green.yaml k8s/service.yaml; do
   sed "s|IMAGE_PLACEHOLDER|${IMAGE}|g" "$f" | kubectl apply -n ${NS} -f -
 done
 
-# Determine current version from service selector
+# Detect current version
 CURRENT=$(kubectl -n ${NS} get svc myapp -o jsonpath='{.spec.selector.version}' || echo "none")
 if [ "$CURRENT" = "blue" ]; then
   TARGET=green
@@ -31,16 +25,14 @@ else
   TARGET=blue
 fi
 
-echo "Current service selector: $CURRENT. Deploying image to $TARGET"
+echo "Deploying image ${IMAGE} to ${TARGET}"
 
-# Update target deployment image (container name must match 'myapp' in manifest)
+# Update target deployment image
 kubectl -n ${NS} set image deployment/myapp-${TARGET} myapp=${IMAGE} --record
 
-echo "Waiting for rollout..."
-kubectl -n ${NS} rollout status deployment/myapp-${TARGET} --timeout=120s
+kubectl -n ${NS} rollout status deployment/myapp-${TARGET} --timeout=180s
 
-echo "Patching service to point to $TARGET..."
+# Switch service
 kubectl -n ${NS} patch svc myapp -p "{\"spec\":{\"selector\":{\"app\":\"myapp\",\"version\":\"$TARGET\"}}}"
 
-echo "Traffic switched to $TARGET (image: ${IMAGE})"
-
+echo "Traffic switched to $TARGET using image ${IMAGE}"

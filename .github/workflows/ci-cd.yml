@@ -4,21 +4,20 @@ on:
   push:
     branches: [ main ]
 
-env:
-  IMAGE_NAME: myapp
-  REGISTRY: localhost:5000   # when runner is on desktop; change if needed
-
 jobs:
-  build-and-deploy:
-    runs-on: [self-hosted, linux, x64]
+  build:
+    name: Build & Push image
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.set-tag.outputs.image-tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: "22"
 
       - name: Install dependencies
         run: npm ci
@@ -29,20 +28,43 @@ jobs:
       - name: Run tests
         run: npm run test
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push Docker image
-        run: |
-          TAG=${{ github.sha }}
-          docker build --build-arg VITE_APP_VERSION=$TAG -t $REGISTRY/$IMAGE_NAME:$TAG -f Dockerfile .
-          docker push $REGISTRY/$IMAGE_NAME:$TAG
-        env:
-          REGISTRY: ${{ env.REGISTRY }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            docker.io/milanr853/blue-green-deployment:${{ github.sha }}
+            docker.io/milanr853/blue-green-deployment:latest
+          build-args: |
+            VITE_APP_VERSION=${{ github.sha }}
 
-      - name: Deploy (blue/green)
-        run: |
-          TAG=${{ github.sha }}
-          chmod +x ./k8s/deploy-bluegreen.sh
-          ./k8s/deploy-bluegreen.sh ${REGISTRY} ${TAG}
-        env:
-          REGISTRY: ${{ env.REGISTRY }}
+      - name: Set image-tag output
+        id: set-tag
+        run: echo "image-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
+  deploy:
+    name: Deploy to k3s (desktop)
+    needs: build
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure deploy script executable
+        run: chmod +x ./k8s/deploy-bluegreen.sh
+
+      - name: Deploy using deploy-bluegreen.sh
+        env:
+          DOCKER_IMAGE_REPO: docker.io/milanr853/blue-green-deployment
+        run: |
+          IMAGE_PREFIX=${DOCKER_IMAGE_REPO}
+          TAG=${{ needs.build.outputs.image-tag }}
+          ./k8s/deploy-bluegreen.sh "${IMAGE_PREFIX}" "${TAG}"

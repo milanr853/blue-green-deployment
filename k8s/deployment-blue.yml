@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: IMAGE_PLACEHOLDER
+          image: IMAGE_PLACEHOLDER   # replaced by deploy-bluegreen.sh
           ports:
             - containerPort: 80
           readinessProbe:
@@ -26,4 +26,3 @@ spec:
               port: 80
             initialDelaySeconds: 3
             periodSeconds: 5
-

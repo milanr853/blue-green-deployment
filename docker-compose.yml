@@ -11,4 +11,6 @@ services:
       - "5173:5173"
     environment:
       - CHOKIDAR_USEPOLLING=true
+      - DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}
+      - DOCKER_IMAGE_REPO=${DOCKER_IMAGE_REPO}
     command: npm run dev -- --host 0.0.0.0
