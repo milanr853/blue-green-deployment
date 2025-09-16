@@ -51,21 +51,21 @@ jobs:
         id: set-tag
         run: echo "image-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-  # deploy:
-  #   name: Deploy to k3s (desktop)
-  #   needs: build
-  #   runs-on: [self-hosted, linux, x64]
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
+  deploy:
+    name: Deploy to k3s (desktop)
+    needs: build
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  #     - name: Ensure deploy script executable
-  #       run: chmod +x ./k8s/deploy-bluegreen.sh
+      - name: Ensure deploy script executable
+        run: chmod +x ./k8s/deploy-bluegreen.sh
 
-  #     - name: Deploy using deploy-bluegreen.sh
-  #       env:
-  #         DOCKER_IMAGE_REPO: docker.io/milanr853/blue-green-deployment
-  #       run: |
-  #         IMAGE_PREFIX=${DOCKER_IMAGE_REPO}
-  #         TAG=${{ needs.build.outputs.image-tag }}
-  #         ./k8s/deploy-bluegreen.sh "${IMAGE_PREFIX}" "${TAG}"
+      - name: Deploy using deploy-bluegreen.sh
+        env:
+          DOCKER_IMAGE_REPO: docker.io/milanr853/blue-green-deployment
+        run: |
+          IMAGE_PREFIX=${DOCKER_IMAGE_REPO}
+          TAG=${{ needs.build.outputs.image-tag }}
+          ./k8s/deploy-bluegreen.sh "${IMAGE_PREFIX}" "${TAG}"
