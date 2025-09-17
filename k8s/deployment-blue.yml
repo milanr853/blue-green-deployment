@@ -17,9 +17,12 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: IMAGE_PLACEHOLDER   # replaced by deploy-bluegreen.sh
+          image: IMAGE_PLACEHOLDER # replaced by deploy-bluegreen.sh
           ports:
             - containerPort: 80
+          env:
+            - name: VITE_DEPLOYMENT_COLOR
+              value: "blue"
           readinessProbe:
             httpGet:
               path: /
