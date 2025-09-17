@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.set-tag.outputs.image-tag }}
+      color: ${{ steps.set-color.outputs.color }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,4 +73,4 @@ jobs:
         env:
           DOCKER_IMAGE_REPO: docker.io/milanr853/blue-green-deployment
         run: |
-          ./k8s/deploy-bluegreen.sh "${{ needs.build.outputs.image-tag }}"
+          ./k8s/deploy-bluegreen.sh "${{ needs.build.outputs.image-tag }}" "${{ needs.build.outputs.color }}"
